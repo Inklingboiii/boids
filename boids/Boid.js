@@ -1,11 +1,12 @@
 class Boid {
-	constructor() {
+	constructor(id) {
 		this.position = createVector(random(width), random(height));
 		this.velocity = p5.Vector.random2D();
-		this.velocity.setMag(2, 4);
+		this.velocity.setMag(3, 4);
 		this.acceleration = createVector();
 		this.maxForce = 0.2;
-		this.maxSpeed = 4;
+		this.maxSpeed = 5;
+		this.id = id;
 	}
 
 	update() {
@@ -13,11 +14,15 @@ class Boid {
 		this.velocity.add(this.acceleration);
 		this.velocity.limit(this.maxSpeed);
 		this.position.add(this.velocity);
+		this.moveBoidInFLockArray();
+
 
 		if(this.position.x > width) this.position.x = 0;
 		if(this.position.x < 0) this.position.x = width;
 		if(this.position.y > height) this.position.y = 0;
 		if(this.position.y < 0) this.position.y = height;
+
+		this.show();
 	}
 
 	show() {
@@ -34,63 +39,29 @@ class Boid {
 
 	flock() {
 		this.acceleration.set(0, 0);
+		this.acceleration.add(this.seperation().mult(1.5));
+		this.acceleration.add(this.alignment());
+		this.acceleration.add(this.cohesion().mult(0.75));
 		
-		let alignment = createVector();
-		let cohesion = createVector();
-		let seperation = createVector();
-
-		let sightRadius = 50;
-		let neighbourCount = 0;
-		for(let otherBoid of flock) {
-			if(otherBoid !== this) {
-				let distance = this.position.dist(otherBoid.position);
-				if(distance <= sightRadius) {
-					neighbourCount++;
-					alignment.add(otherBoid.velocity);
-					cohesion.add(otherBoid.position);	
-
-					let difference = p5.Vector.sub(this.position, otherBoid.position);
-					difference.div(distance * distance);
-					seperation.add(difference);			
-				}
-			}
-		}
-
-		// Add walls to seperation vector
-		walls.map((wall) => {
-			let distance = this.position.dist(wall);
-			if(distance <= sightRadius) {
-				console.log('wall moment')
-				neighbourCount++;
-				let difference = p5.Vector.sub(this.position, wall);
-				difference.div(distance * distance);
-				seperation.add(difference);	
-			}	
-		});
-		if(neighbourCount) {
-			alignment.div(neighbourCount);
-			cohesion.div(neighbourCount);
-			cohesion.sub(this.position);
-			seperation.div(neighbourCount);
-			[alignment, cohesion, seperation].forEach((steeringForce, index) => {
-				steeringForce.setMag(this.maxSpeed);
-				steeringForce.sub(this.velocity);
-				steeringForce.limit(this.maxForce);
-			});
-		}
-
-		this.acceleration.add(alignment.mult(1.1));
-		this.acceleration.add(cohesion);
-		this.acceleration.add(seperation.mult(1.25));
 	}
 
 	alignment() {
 		let sightRadius = 50;
 		let steeringForce = createVector();
 		let neighbourCount = 0;
-		for(let otherBoid of flock) {
+		let neighbours = [];
+		let x = Math.floor(this.position.x / cellSize);
+		let y = Math.floor(this.position.y / cellSize);
+		for(let neighbourX = x - 1; neighbourX <= x + 1; neighbourX++) {
+			for(let neighbourY = y - 1; neighbourY <= y + 1; neighbourY++) {
+				if(neighbourX >= 0 && neighbourX < flock.length && neighbourY >= 0 && neighbourY < flock[0].length) { // Avoid out of bound errors
+					neighbours = neighbours.concat(flock[neighbourX][neighbourY]);
+				}
+			}
+		}
+		for(let otherBoid of neighbours) {
 			if(otherBoid !== this) {
-				let distance = dist(this.position.x, this.position.y, otherBoid.position.x, otherBoid.position.y);
+				let distance = this.position.dist(otherBoid.position);
 				if(distance <= sightRadius) {
 					neighbourCount++;
 					steeringForce.add(otherBoid.velocity);				
@@ -110,9 +81,19 @@ class Boid {
 		let sightRadius = 50;
 		let steeringForce = createVector();
 		let neighbourCount = 0;
-		for(let otherBoid of flock) {
+		let neighbours = [];
+		let x = Math.floor(this.position.x / cellSize);
+		let y = Math.floor(this.position.y / cellSize);
+		for(let neighbourX = x - 1; neighbourX <= x + 1; neighbourX++) {
+			for(let neighbourY = y - 1; neighbourY <= y + 1; neighbourY++) {
+				if(neighbourX >= 0 && neighbourX < flock.length && neighbourY >= 0 && neighbourY < flock[0].length) { // Avoid out of bound errors
+					neighbours = neighbours.concat(flock[neighbourX][neighbourY]);
+				}
+			}
+		}
+		for(let otherBoid of neighbours) {
 			if(otherBoid !== this) {
-				let distance = dist(this.position.x, this.position.y, otherBoid.position.x, otherBoid.position.y);
+				let distance = this.position.dist(otherBoid.position);
 				if(distance <= sightRadius) {
 					neighbourCount++;
 					steeringForce.add(otherBoid.position);				
@@ -133,10 +114,34 @@ class Boid {
 		let sightRadius = 50;
 		let steeringForce = createVector();
 		let neighbourCounter = 0;
-		for(let otherBoid of flock) {
+		let neighbours = [];
+		let x = Math.floor(this.position.x / cellSize);
+		let y = Math.floor(this.position.y / cellSize);
+		for(let neighbourX = x - 1; neighbourX <= x + 1; neighbourX++) {
+			for(let neighbourY = y - 1; neighbourY <= y + 1; neighbourY++) {
+				if(neighbourX >= 0 && neighbourX < flock.length && neighbourY >= 0 && neighbourY < flock[0].length) { // Avoid out of bound errors
+					neighbours = neighbours.concat(flock[neighbourX][neighbourY]);
+				}
+			}
+		}
+		let walls = [
+			{
+				position: createVector(width, this.position.y) // Right
+			},
+			{
+				position: createVector(0, this.position.y) // Left
+			},
+			{
+				position: createVector(this.position.x, height) // Up
+			},
+			{
+				position: createVector(this.position.x, 0) // Down
+			}
+		]
+		for(let otherBoid of walls.concat(neighbours)) {
 			if(otherBoid !== this) {
 
-				let distance = dist(this.position.x, this.position.y, otherBoid.position.x, otherBoid.position.y);
+				let distance = this.position.dist(otherBoid.position);
 				if(distance <= sightRadius) {
 					neighbourCounter++;
 					let difference = p5.Vector.sub(this.position, otherBoid.position);
@@ -153,4 +158,17 @@ class Boid {
 		}
 		return steeringForce;
 	}
+
+	moveBoidInFLockArray() {
+		// Remove priorBoidPosition
+		let priorBoidPosition = p5.Vector.sub(this.position, this.velocity);
+		let priorFlockPosition = flock[Math.floor(priorBoidPosition.x / cellSize)][Math.floor(priorBoidPosition.y / cellSize)];
+		//console.log('priorflockposition', [...priorFlockPosition])
+		flock[Math.floor(priorBoidPosition.x / cellSize)][Math.floor(priorBoidPosition.y / cellSize)] = priorFlockPosition.filter((boid) => boid.id !== this.id);
+		flock[Math.floor(this.position.x / cellSize)][Math.floor(this.position.y / cellSize)].push(this);
+		//console.log('flockposition', [...flock[Math.floor(this.position.x / cellSize)][Math.floor(this.position.y / cellSize)]])
+	}
 }
+
+
+
