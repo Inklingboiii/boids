@@ -5,22 +5,23 @@ class Boid {
 		this.velocity.setMag(3, 4);
 		this.acceleration = createVector();
 		this.maxForce = 0.2;
-		this.maxSpeed = 5;
-		this.id = id;
+		this.maxSpeed = 4;
+		//this.id = id;
 	}
 
 	update() {
 		this.flock();
 		this.velocity.add(this.acceleration);
-		this.velocity.limit(this.maxSpeed);
+		this.velocity.setMag(3, 4);
 		this.position.add(this.velocity);
-		this.moveBoidInFLockArray();
 
 
 		if(this.position.x > width) this.position.x = 0;
 		if(this.position.x < 0) this.position.x = width;
 		if(this.position.y > height) this.position.y = 0;
 		if(this.position.y < 0) this.position.y = height;
+		
+		//this.moveBoidInFLockArray()
 
 		this.show();
 	}
@@ -49,7 +50,7 @@ class Boid {
 		let sightRadius = 50;
 		let steeringForce = createVector();
 		let neighbourCount = 0;
-		let neighbours = [];
+		/*let neighbours = [];
 		let x = Math.floor(this.position.x / cellSize);
 		let y = Math.floor(this.position.y / cellSize);
 		for(let neighbourX = x - 1; neighbourX <= x + 1; neighbourX++) {
@@ -58,8 +59,8 @@ class Boid {
 					neighbours = neighbours.concat(flock[neighbourX][neighbourY]);
 				}
 			}
-		}
-		for(let otherBoid of neighbours) {
+		}*/
+		for(let otherBoid of flock) {
 			if(otherBoid !== this) {
 				let distance = this.position.dist(otherBoid.position);
 				if(distance <= sightRadius) {
@@ -81,7 +82,7 @@ class Boid {
 		let sightRadius = 50;
 		let steeringForce = createVector();
 		let neighbourCount = 0;
-		let neighbours = [];
+		/*let neighbours = [];
 		let x = Math.floor(this.position.x / cellSize);
 		let y = Math.floor(this.position.y / cellSize);
 		for(let neighbourX = x - 1; neighbourX <= x + 1; neighbourX++) {
@@ -90,8 +91,8 @@ class Boid {
 					neighbours = neighbours.concat(flock[neighbourX][neighbourY]);
 				}
 			}
-		}
-		for(let otherBoid of neighbours) {
+		}*/
+		for(let otherBoid of flock) {
 			if(otherBoid !== this) {
 				let distance = this.position.dist(otherBoid.position);
 				if(distance <= sightRadius) {
@@ -114,7 +115,7 @@ class Boid {
 		let sightRadius = 50;
 		let steeringForce = createVector();
 		let neighbourCounter = 0;
-		let neighbours = [];
+		/*let neighbours = [];
 		let x = Math.floor(this.position.x / cellSize);
 		let y = Math.floor(this.position.y / cellSize);
 		for(let neighbourX = x - 1; neighbourX <= x + 1; neighbourX++) {
@@ -123,7 +124,7 @@ class Boid {
 					neighbours = neighbours.concat(flock[neighbourX][neighbourY]);
 				}
 			}
-		}
+		}*/
 		let walls = [
 			{
 				position: createVector(width, this.position.y) // Right
@@ -138,7 +139,7 @@ class Boid {
 				position: createVector(this.position.x, 0) // Down
 			}
 		]
-		for(let otherBoid of walls.concat(neighbours)) {
+		for(let otherBoid of walls.concat(flock)) {
 			if(otherBoid !== this) {
 
 				let distance = this.position.dist(otherBoid.position);
@@ -161,14 +162,12 @@ class Boid {
 
 	moveBoidInFLockArray() {
 		// Remove priorBoidPosition
-		let priorBoidPosition = p5.Vector.sub(this.position, this.velocity);
-		let priorFlockPosition = flock[Math.floor(priorBoidPosition.x / cellSize)][Math.floor(priorBoidPosition.y / cellSize)];
-		//console.log('priorflockposition', [...priorFlockPosition])
-		flock[Math.floor(priorBoidPosition.x / cellSize)][Math.floor(priorBoidPosition.y / cellSize)] = priorFlockPosition.filter((boid) => boid.id !== this.id);
-		flock[Math.floor(this.position.x / cellSize)][Math.floor(this.position.y / cellSize)].push(this);
-		//console.log('flockposition', [...flock[Math.floor(this.position.x / cellSize)][Math.floor(this.position.y / cellSize)]])
+		let priorFlockPosition = createVector(floor((this.position.x - this.velocity.x) / cellSize), floor((this.position.y - this.velocity.y) / cellSize));
+		let flockPosition = createVector(floor(this.position.x / cellSize), floor(this.position.y / cellSize));
+		if(!priorFlockPosition.equals(flockPosition)) {
+			let priorFlockArray = flock[priorFlockPosition.x][priorFlockPosition.y];
+			flock[priorFlockPosition.x][priorFlockPosition.y] = priorFlockArray.filter((boid) => boid.id !== this.id);
+			flock[flockPosition.x][flockPosition.y].push(this);
+		} 
 	}
 }
-
-
-
